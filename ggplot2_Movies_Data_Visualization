@@ -1,0 +1,156 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, include=FALSE}
+setwd("C:\\Users\\philc\\OneDrive\\Documents\\ggplot2movies")
+
+#install.packages("ggplot2movies")
+#install.packages("patchwork")
+library(ggplot2movies)
+library(skimr)
+library(tidyverse)
+library(patchwork)
+#Turn off scientific notation for numbers. 
+options(scipen = 999)
+data(movies)
+```
+
+```{r, include=FALSE}
+# What does the data look like?
+tail(movies)
+skim(movies)
+str(movies)
+
+# Change data types.
+movies$year<- as.factor(movies$year)
+movies$mpaa<- as.factor(movies$mpaa)
+
+# Turn the dataset from wide to long forma
+lmds <- gather(movies, key= genre, value=Y_N, Action, Animation, Comedy, Drama, Documentary, Romance, Short)
+
+lmds$genre <- as.factor(lmds$genre)
+
+# Filter out the observations 
+clmds<- lmds %>% filter(Y_N==1)
+head(clmds)
+```
+
+
+```{r, include=FALSE}
+ggplot(data=clmds)+
+  geom_bar(aes(x=genre,fill= budget))+
+  theme_classic()+
+  ggtitle("Number Of Movies By Genre (1893-2005)", "What type of movies was most populare?")+
+  xlab("Genre")+
+  ylab("Number")+
+  annotate("text", x = 5.7, y = 25000, label = "Drama was the most popular movie type\nNo horror, thriller, and Sci-Fi types.")
+```
+
+```{r, include=FALSE}
+# Change color from gray to dark blue.
+
+ggplot(data=clmds)+
+  geom_bar(aes(x=genre, fill= budget), fill="darkblue")+ 
+  theme_classic()+
+  ggtitle("Number Of Movies By Genre (1893-2005)", "What type of movies was most populare?")+
+  xlab("Genre")+
+  ylab("Number")+
+  annotate("text", x = 5.7, y = 25000, label = "Drama was the most popular movie type\nHorror, thriller, and Sci-Fi types are not included.")
+```
+
+# Movie Dataset
+## Plot1 - Before removing missing data
+```{r,echo=FALSE}
+# Use theme_minimal and set base_size argument to 12
+
+ggplot(data=clmds)+
+  geom_bar(aes(x=genre, fill= budget), fill="darkblue")+ 
+  theme_minimal(base_size = 11)+
+  ggtitle("Number Of Movies By Genre (1893-2005)", "What type of movies was most popular?")+
+  xlab("Genre")+
+  ylab("Number")+
+  annotate("text", x = 5, y = 25000, label = "Drama was the most popular movie type. Horror, \nthriller, and Sci-Fi movies were not included.", color="black")
+```
+
+
+## Plot 2 - Before removing missing data
+```{r,echo=FALSE}
+# Create a subset with genre and rating data.
+
+mgenre<-tibble(genre=clmds$genre, rating=clmds$rating)
+
+ggplot(mgenre) +
+ aes(x = rating, fill = genre) +
+ geom_density(adjust = 1L, alpha=0.3)+
+  geom_vline(xintercept = 7.2, linetype="dashed", color="red", size=1)+
+ scale_fill_hue(direction = 1) +
+ theme_minimal(base_size = 12)+
+  ggtitle("Rating Distribution By Genre", "What type of movie got highest rating? " )+
+  xlab("Average Rating")+
+  ylab("Density")+
+  labs(caption="Documentaries generally receive higher ratings.")
+
+```
+```{r,include=FALSE}
+ggplot(mgenre) +
+ aes(x =rating, fill = genre) +
+ geom_density(adjust = 1L, alpha=0.3) + facet_wrap(mgenre$genre)+
+ scale_fill_hue(direction = 1) +
+ theme_minimal(base_size = 12)+
+  labs(title="Average IMDB User Rating By Genre (1893-2005)", subtitle="What type of movie get highest rating? ", caption ="Documentaries in general recieve higherratings.")+
+  xlab("Average Rating")
+
+```
+
+
+
+```{r,include=FALSE}
+n_clmds<- clmds %>% filter(! is.na(budget),mpaa!="")
+n_ds<-tibble(title=n_clmds$title, length=n_clmds$length,budget=n_clmds$budget,rating=n_clmds$rating,votes=n_clmds$votes,mpaa=n_clmds$mpaa,genre=n_clmds$genre)
+n_ds
+```
+
+## Plot 3 - After removing missing data
+```{r,echo=FALSE}
+# Movie Budget By Genre
+
+p1<- ggplot(n_ds) +
+ aes(x = genre, y = budget, fill = genre) +
+ geom_jitter(alpha=0.1, color="blue")+
+ geom_boxplot(alpha=0.8) +
+ scale_fill_manual(values = c(Action = "#9E0142", 
+Animation = "#E95D47", Comedy = "#FDBE6E", Documentary = "#FFFFBF", Drama = "#BEE5A0", Romance = "#54AEAC", 
+Short = "#5E4FA2")) +
+ labs(x = "Genre", y = "Budget (USD)", title = "Movie Budget", subtitle = "What type of movie needs \nhigher budget?", 
+ caption = "Making animations is generally more expensive.") +
+ theme(axis.text.x=element_blank(),axis.ticks.x=element_blank(),legend.position = "none")
+
+# Movie Ratings by Genre
+p2<-ggplot(n_ds) +
+ aes(x = genre, y = rating, fill = genre) +
+ geom_jitter(alpha=0.1, color="blue")+
+ geom_boxplot(alpha=0.8) +
+ scale_fill_manual(values = c(Action = "#9E0142", 
+Animation = "#E95D47", Comedy = "#FDBE6E", Documentary = "#FFFFBF", Drama = "#BEE5A0", Romance = "#54AEAC", 
+Short = "#5E4FA2")) +
+ labs(x = "Genre", y = "Rating", title = "Movie Ratings", subtitle = "What type of movie has the \nhighest rating?", 
+ caption = "Short movies generally have higher\n ratings and they don't cost too much!") +
+ theme(axis.text.x=element_blank(),axis.ticks.x=element_blank())
+
+# Use patchwork to combine two boxplots
+p1 + p2
+```
+
+## Plot 4 - After removing missing data
+```{r,echo=FALSE}
+ggplot(n_ds) +
+ aes(x = rating) +
+ geom_histogram(bins = 20L, fill = "#112446") +
+ labs(x = "Rating", y = "Density", 
+ title = "Rating Distribution", subtitle = "Does the rating data follow normal distribution?", caption = "The data follows normal distribution with most ratings between 6 and 7") +
+ theme_minimal(base_size = 18)
+```
+
+
