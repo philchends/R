@@ -1,0 +1,84 @@
+---
+title: "Recreate Data Visualization"
+author: "Phil Chen"
+date: "2022-10-16"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Recreate a data visualization from Fivethirtyeight (https://projects.fivethirtyeight.com/college-fight-song-lyrics/)
+
+Source: https://github.com/fivethirtyeight/data/tree/master/fight-songs/
+
+```{r,warning=F}
+# Load the tidyverse
+library(tidyverse)
+
+# Import data 
+fight.songs <-
+read.csv("https://raw.githubusercontent.com/kitadasmalley/DATA502/main/FALL2022/D
+ata/fight_songs_HKS.csv", stringsAsFactors=FALSE)
+
+fight.songs$trope_count<- as.factor(fight.songs$trope_count)
+```
+
+```{r}
+#summary(fight.songs)
+
+#  Select "Oregon State" and create a separate dataset
+ors<-fight.songs %>% filter(school=="Oregon State")
+
+# Create a dataset for the schools that are not "Oregon State"
+others<- fight.songs %>% filter(school!="Oregon State")
+```
+
+
+
+```{r,warning=F}
+fight.songs %>% 
+  ggplot(aes(x=sec_duration, y=bpm))+
+  geom_point(size=5, alpha=0.1)+
+  geom_point(data=others, size=5, alpha=0.2, color=others$hex)+
+  geom_point(data=ors,size=5, shape=21, fill=ors$hex, color="black",stroke=1.2)+
+  geom_hline(data=fight.songs, yintercept = 130, linetype="dashed")+
+  geom_vline(data=fight.songs, xintercept = 71, linetype="dashed")+
+  ggtitle("How Oregon State’s fight song stacks up")+
+  annotate("text", x = 65, y = 144, label = "Oregon State",size=4,fontface = 'bold')+
+  annotate("text", x = c(30,140), y=190, label=c("Fast and short","Fast but long"))+
+  annotate("text", x = c(30,140), y=50, label=c("Slow but short","Slow and long"))+
+  annotate("text", x = 160, y=131, label="Average",size=3)+
+  annotate("text", x = 70, y=105, label="Average",size=3,angle=90)+
+  scale_x_discrete(limit=c(0,20,40,60,80,100,120,140,160,180), name="Duration",
+                   labels=c("0 sec","20","40","60","80","100","120","140","160","180"))+
+  scale_y_discrete(limit=c(40,60,80,100,120,140,160,180,200), name="Beats per minute",
+                   labels=c("","60","80","100","120","140","160","180","200bpm"))+
+  coord_fixed(ratio = 1, xlim = c(0,180), ylim = c(40,200))+
+  theme(axis.ticks = element_blank(), panel.background = element_rect(fill = "white"),
+        panel.grid.major = element_line(colour = "lightgrey"), 
+        plot.title = element_text(hjust = 0.5, face = "bold"))
+
+```
+
+```{r}
+# Create an alternative data visualization using original dataset
+ggplot(fight.songs) +
+  aes(x = sec_duration, fill = student_writer) +
+  geom_density(adjust = 1L, alpha=0.5) +
+  annotate("segment", x = 50, xend = 50, y = 0, yend = 0.02,colour = "blue", linetype="dotted")+
+  annotate("segment", x = 100, xend = 100, y = 0, yend = 0.02,colour = "red", linetype="dashed")+
+  scale_fill_manual(values = c(No = "#440154",Unknown = "#22908B",Yes = "#FDE725")) +
+  labs(x = "Duration (in seconds)", y = "Density",title = "Who Wrote Longer College Fight Songs? \nStudent Writers or Not-Student Writers?",
+    subtitle = "Student writers write longer fight songs.Some songs are longer than 150 seconds.",
+    caption = "The songs written by student writers are between 50 to 125 seconds. Some songs go beyond 150.\nThe songs by not-student writers mostly fall between 50 and 100 seconds and stay below 150.\nThe songs written by unknown writers are less than 100 seconds.") +
+  theme_minimal() +
+  theme(legend.position = "none",plot.caption = element_text(hjust = 0),panel.grid.minor = element_blank(),panel.grid.major = element_blank()) +
+  facet_grid(vars(), vars(student_writer))
+```
+
+
+
